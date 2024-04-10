@@ -29,11 +29,9 @@ request = json.load(sys.stdin)
 original_environment = request['environment']
 
 for evar in [
-        "LOKI_ADDR",
         "LOKI_API_AUTH_USERNAME",
         "LOKI_API_AUTH_PASSWORD",
         "LOKI_LOGS_INGRESS_TOKEN",
-        "LOKI_HTTP_PORT",
         "LOKI_RETENTION_PERIOD",
     ]:
     agent.set_env(evar, original_environment[evar])
