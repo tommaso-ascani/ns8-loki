@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import sys
+import agent
+import subprocess
+import os
+import sys
+
+try:
+    # Find the biggest modification timestamp among Loki's subdirs,
+    # and print it in ISO8601 format. Note that the timezone requires
+    # the ":" separator, otherwise the parsing fails.
+    find_latest_change_script = """find /loki -type d |
+        xargs -- stat -c %Y |
+        awk 'BEGIN { ts = 0 } ; { ts = $1 > ts ? $1 : ts ; } ; END { print ts }' |
+        xargs -IDATE -- date -u -d @DATE +%Y-%m-%dT%H:%M:%S.0+00:00
+    """
+    proc_active_to = subprocess.run(["podman", "run", "-i",
+            "--name=loki-server-restore", "--replace", "--rm",
+            "--network=none", "--volume=loki-server-data:/loki:z",
+            '--entrypoint=["ash","-s"]',
+            os.environ["LOKI_IMAGE"],
+        ],
+        stdout=subprocess.PIPE,
+        stderr=sys.stderr,
+        input=find_latest_change_script,
+        text=True,
+        check=True,
+    )
+except Exception as ex:
+    print(agent.SD_WARNING + "Cannot restore LOKI_ACTIVE_TO:", str(ex), file=sys.stderr)
+else:
+    agent.set_env("LOKI_ACTIVE_TO", proc_active_to.stdout.strip())

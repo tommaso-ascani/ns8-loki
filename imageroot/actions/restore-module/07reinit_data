@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+exec 1>&2
+
+# Stop the pod
+systemctl --user stop loki.service
+
+# At index 20, volume contents are restored by Restic.
+podman volume rm loki-server-data
