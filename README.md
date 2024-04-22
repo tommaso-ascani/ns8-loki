@@ -56,6 +56,9 @@ The module provides some APIs to interact with the Loki instance:
 
 - `configure-module`
 - `get-configuration`
+- `start-forwarder`
+- `stop-forwarder`
+- `get-forwarder`
 
 ### `configure-module`
 
@@ -90,6 +93,52 @@ api-cli run module/loki1/get-configuration
 ```
 
 Note: `active_to` field WILL miss if the instance is still active.
+
+### `start-forwarder`
+
+Configure Loki 2 Syslog, logs forwarding service from loki to syslog server.
+
+#### Parameters
+
+- `syslog_ip`: Syslog server ip.
+- `syslog_port`: Syslog server port.
+- `syslog_protocol`: Sending protocol (udp / tcp).
+- `syslog_format`: Logs format (rfc3164 / rfc5424).
+
+#### Example
+
+```bash
+api-cli run module/loki1/start-forwarder --data '{"syslog_ip": "127.0.0.1", "syslog_port": 514, "syslog_protocol": "udp", "syslog_format": "rfc3164"}'
+```
+
+### `stop-forwarder`
+
+Stop and unset Loki 2 Syslog service.
+
+#### Example
+
+```bash
+api-cli run module/loki1/stop-forwarder
+```
+
+### `get-forwarder`
+
+Get Loki 2 Syslog service configuration.
+
+#### Example
+
+```bash
+api-cli run module/loki1/get-forwarder
+```
+
+```json
+{
+  "syslog_ip": "172.18.0.2", 
+  "syslog_port": 514, 
+  "syslog_protocol": "udp", 
+  "syslog_format": "rfc3164"
+}
+```
 
 ## Uninstall
 

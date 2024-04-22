@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import os
+import json
+import sys
+
+try: 
+    response = {
+        "syslog_ip": os.getenv('SYSLOG_IP'),
+        "syslog_port": int(os.getenv('SYSLOG_PORT')),
+        "syslog_protocol": os.getenv('SYSLOG_PROTOCOL'),
+        "syslog_format": os.getenv('SYSLOG_FORMAT')
+    }
+except:
+    response = {
+        "syslog_ip": "None",
+        "syslog_port": 0,
+        "syslog_protocol": "None",
+        "syslog_format": "None"
+    }
+
+json.dump(response, sys.stdout)

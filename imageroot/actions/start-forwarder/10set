@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+import json
+import sys
+
+request = json.load(sys.stdin)
+
+agent.set_env('SYSLOG_IP', f"{request['syslog_ip']}")
+agent.set_env('SYSLOG_PORT', f"{request['syslog_port']}")
+agent.set_env('SYSLOG_PROTOCOL', f"{request['syslog_protocol']}")
+agent.set_env('SYSLOG_FORMAT', f"{request['syslog_format']}")

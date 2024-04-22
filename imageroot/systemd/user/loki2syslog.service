@@ -1,0 +1,11 @@
+[Unit]
+Description=Loki 2 Syslog
+Requires=loki-server.service
+After=loki-server.service
+
+[Service]
+Restart=always
+ExecStart=runagent %S/bin/loki2syslog
+
+[Install]
+WantedBy=default.target
