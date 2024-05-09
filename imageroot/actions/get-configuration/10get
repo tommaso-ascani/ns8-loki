@@ -5,13 +5,57 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+from datetime import datetime, timezone
+
 import os
 import json
 import sys
 
+# Cloud Log Manager
+
+cloud_log_manager = {}
+
+if os.system("systemctl is-active --user --quiet cloud-log-manager-forwarder") == 0:
+    cloud_log_manager["active"] = True
+else:
+    cloud_log_manager["active"] = False
+
+cloud_log_manager["address"] = os.getenv('CLOUD_LOG_MANAGER_ADDRESS', '')
+cloud_log_manager["tenant"] = os.getenv('CLOUD_LOG_MANAGER_TENANT', '')
+
+try: 
+    with open("./cloud_log_manager_last_timestamp", "r") as clm_file:
+        cloud_log_manager["last_timestamp"] = datetime.strptime(clm_file.read(), '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+except:
+    cloud_log_manager["last_timestamp"] = ""
+
+# Syslog
+
+syslog = {}
+
+if os.system("systemctl is-active --user --quiet syslog-forwarder") == 0:
+    syslog["active"] = True
+else:
+    syslog["active"] = False
+
+syslog["address"] = os.getenv('SYSLOG_ADDRESS', '')
+syslog["port"] = os.getenv('SYSLOG_PORT', '')
+syslog["protocol"] = os.getenv('SYSLOG_PROTOCOL', '')
+syslog["format"] = os.getenv('SYSLOG_FORMAT', '')
+
+try:
+    with open("./syslog_last_timestamp", "r") as syslog_file:
+        syslog["last_timestamp"] = datetime.strptime(syslog_file.read(), '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+except:
+    syslog["last_timestamp"] = ""
+
+# General
+
 response = {
     "retention_days": int(os.getenv('LOKI_RETENTION_PERIOD')),
-    "active_from": os.getenv('LOKI_ACTIVE_FROM')
+    "active_from": os.getenv('LOKI_ACTIVE_FROM'),
+    "cloud_log_manager": cloud_log_manager,
+    "syslog": syslog
 }
 
 if os.getenv('LOKI_ACTIVE_TO') is not None:

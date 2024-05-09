@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+read -r active < <(jq -r '[.active] | join("\t")')
+
+systemctl --user disable --now cloud-log-manager-forwarder.service
+
+if $active; then
+    systemctl --user enable --now cloud-log-manager-forwarder.service
+fi
+

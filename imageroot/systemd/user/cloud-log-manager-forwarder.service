@@ -1,11 +1,11 @@
 [Unit]
-Description=Loki 2 Syslog
+Description=Cloud Log Manager Forwarder
 Requires=loki-server.service
 After=loki-server.service
 
 [Service]
 Restart=always
-ExecStart=runagent %S/bin/loki2syslog
+ExecStart=runagent %S/bin/cloud-log-manager-forwarder
 
 [Install]
 WantedBy=default.target

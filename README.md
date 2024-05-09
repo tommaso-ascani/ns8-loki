@@ -1,6 +1,6 @@
 # Loki
 
-Start and configure a instance of Loki, a log aggregation system.
+Start and configure an instance of Loki, a log aggregation system.
 The module use the [Loki official docker image](https://github.com/grafana/loki/releases)
 
 ## Install
@@ -56,9 +56,12 @@ The module provides some APIs to interact with the Loki instance:
 
 - `configure-module`
 - `get-configuration`
-- `start-forwarder`
-- `stop-forwarder`
-- `get-forwarder`
+- `start-loki2syslog`
+- `start-loki2gigasys`
+- `stop-loki2syslog`
+- `stop-loki2gigasys`
+- `get-loki2syslog`
+- `get-loki2gigasys`
 
 ### `configure-module`
 
@@ -94,49 +97,95 @@ api-cli run module/loki1/get-configuration
 
 Note: `active_to` field WILL miss if the instance is still active.
 
-### `start-forwarder`
+### `start-loki2syslog`
 
 Configure Loki 2 Syslog, logs forwarding service from loki to syslog server.
 
 #### Parameters
 
-- `syslog_ip`: Syslog server ip.
-- `syslog_port`: Syslog server port.
-- `syslog_protocol`: Sending protocol (udp / tcp).
-- `syslog_format`: Logs format (rfc3164 / rfc5424).
+- `address`: Syslog server address.
+- `port`: Syslog server port.
+- `protocol`: Sending protocol, valid values are `udp` and `tcp`.
+- `format`: Logs format, valid values are `rfcC3164` and `rfc5424`.
+- `backlog`: Backlog period value, `hours` of old logs to be sent (default `0`).
 
 #### Example
 
 ```bash
-api-cli run module/loki1/start-forwarder --data '{"syslog_ip": "127.0.0.1", "syslog_port": 514, "syslog_protocol": "udp", "syslog_format": "rfc3164"}'
+api-cli run module/loki1/start-loki2syslog --data '{"address": "127.0.0.1", "port": "514", "protocol": "udp", "format": "rfc3164", "backlog": "24"}'
 ```
 
-### `stop-forwarder`
+### `start-loki2gigasys`
+
+Configure Loki 2 Gigasys, logs forwarding service from loki to gigasys server.
+
+#### Parameters
+
+- `uuid`: Machine UUID identifier. (To generate a new one, use `uuidgen` command)
+- `backlog`: Backlog period value, `hours` of old logs to be sent (default `0`).
+- `address`: Gigasys server address.
+- `tenant`: Gigasys server tenant.
+
+#### Example
+
+```bash
+api-cli run module/loki1/start-loki2gigasys --data '{"uuid": "...", "backlog": "24", "address": "https://gigasys.it", "tenant": "gigasys"}'
+```
+
+### `stop-loki2syslog`
 
 Stop and unset Loki 2 Syslog service.
 
 #### Example
 
 ```bash
-api-cli run module/loki1/stop-forwarder
+api-cli run module/loki1/stop-loki2syslog
 ```
 
-### `get-forwarder`
+### `stop-loki2gigasys`
+
+Stop and unset Loki 2 Gigasys service.
+
+#### Example
+
+```bash
+api-cli run module/loki1/stop-loki2gigasys
+```
+
+### `get-loki2syslog`
 
 Get Loki 2 Syslog service configuration.
 
 #### Example
 
 ```bash
-api-cli run module/loki1/get-forwarder
+api-cli run module/loki1/get-loki2syslog
 ```
 
 ```json
 {
-  "syslog_ip": "172.18.0.2", 
-  "syslog_port": 514, 
-  "syslog_protocol": "udp", 
-  "syslog_format": "rfc3164"
+  "address": "172.18.0.2",
+  "port": "514",
+  "protocol": "udp",
+  "format": "rfc3164"
+}
+```
+
+### `get-loki2gigasys`
+
+Get Loki 2 Gigasys service configuration.
+
+#### Example
+
+```bash
+api-cli run module/loki1/get-loki2gigasys
+```
+
+```json
+{
+  "uuid": "...", 
+  "address": "https://gigasys.it", 
+  "tenant": "gigasys"
 }
 ```
 

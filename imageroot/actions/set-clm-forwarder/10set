@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+import json
+import uuid
+import sys
+
+request = json.load(sys.stdin)
+
+rdb = agent.redis_connect()
+cluster_uuid = rdb.get('cluster/uuid')
+subscription = rdb.hgetall('cluster/subscription')
+
+if not bool(subscription):
+    print("No subscription found !")
+    sys.exit(1)
+
+if (request['active']):
+    agent.set_env('CLOUD_LOG_MANAGER_UUID', uuid.uuid5(uuid.NAMESPACE_DNS, cluster_uuid))
+    agent.set_env('CLOUD_LOG_MANAGER_ADDRESS', f"{request['address']}")
+    agent.set_env('CLOUD_LOG_MANAGER_TENANT', f"{request['tenant']}")
+
+    if (request['start_time'] != ''):
+        agent.set_env('CLOUD_LOG_MANAGER_START_TIME', f"{request['start_time']}")
+else:
+    agent.unset_env('CLOUD_LOG_MANAGER_UUID')
+    agent.unset_env('CLOUD_LOG_MANAGER_START_TIME')
+    agent.unset_env('CLOUD_LOG_MANAGER_ADDRESS')
+    agent.unset_env('CLOUD_LOG_MANAGER_TENANT')

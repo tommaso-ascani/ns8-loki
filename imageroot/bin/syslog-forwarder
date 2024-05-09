@@ -2,26 +2,13 @@
 
 #
 # Copyright (C) 2024 Nethesis S.r.l.
-# http://www.nethesis.it - nethserver@nethesis.it
-#
-# This script is part of NethServer.
-#
-# NethServer is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License,
-# or any later version.
-#
-# NethServer is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with NethServer.  If not, see COPYING.
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 
 from datetime import datetime, timedelta
+
 import subprocess
+import agent
 import json
 import time
 import socket
@@ -31,16 +18,16 @@ import sys
 #-------------------------------- CONFIG --------------------------------#
 
 try:
-    SYSLOG_IP = os.environ.get('SYSLOG_IP')
-    SYSLOG_PORT = os.environ.get('SYSLOG_PORT')
-    SYSLOG_PROTOCOL = os.environ.get('SYSLOG_PROTOCOL')
-    SYSLOG_FORMAT = os.environ.get('SYSLOG_FORMAT')
+    ADDRESS = os.environ.get('SYSLOG_ADDRESS')
+    PORT = os.environ.get('SYSLOG_PORT', "514")
+    PROTOCOL = os.environ.get('SYSLOG_PROTOCOL', 'udp')
+    FORMAT = os.environ.get('SYSLOG_FORMAT', 'rfc3164')
+    START_TIME = os.environ.get('SYSLOG_START_TIME', '')
 
     os.environ['LOKI_ADDR'] = f"http://127.0.0.1:{os.environ['LOKI_HTTP_PORT']}"
     os.environ['LOKI_USERNAME'] = os.environ['LOKI_API_AUTH_USERNAME']
     os.environ['LOKI_PASSWORD'] = os.environ['LOKI_API_AUTH_PASSWORD']
 except:
-    print('Cannot set environment variables !')
     sys.exit(1)
 
 #--------------------------------- CODE ---------------------------------#
@@ -55,34 +42,35 @@ transports = {
 }
 
 # Logging setup
-if SYSLOG_PROTOCOL == "udp":
+if PROTOCOL == "udp":
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-elif SYSLOG_PROTOCOL == "tcp":
+elif PROTOCOL == "tcp":
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 else:
-    print('Invalid syslog protocol !')
     sys.exit(1)
 
 # Connect to syslog server
 try:
-    sock.connect((SYSLOG_IP, int(SYSLOG_PORT)))
+    sock.connect((ADDRESS, int(PORT)))
 except:
-    print('Cannot connect to syslog server !')
     sys.exit(1)
 
-# If exists, read from file last log timestamp sent, otherwise get the last 7 days logs
-if os.path.exists("./last_timestamp") and os.path.getsize("./last_timestamp") > 0:
-    timestamp_file = open("./last_timestamp", "r")
-    last_timestamp = timestamp_file.read()
+# If exists, read from file last log timestamp sent
+if START_TIME == '':
+    if os.path.exists("./syslog_last_timestamp") and os.path.getsize("./syslog_last_timestamp") > 0:
+        with open("./syslog_last_timestamp", "r") as tf:
+            last_timestamp = tf.read()
+    else:
+        last_timestamp = (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 else:
-    last_timestamp = (datetime.now() - timedelta(days=7)).isoformat() + "Z"
+    last_timestamp = START_TIME
+    agent.unset_env('SYSLOG_START_TIME')
 
 # Every x seconds execute logcli command and send logs to syslog server
 while True:
     try:
         # LogCLI command
-        logcli_command = """logcli query --limit=0 --forward --from='""" + last_timestamp + """' --no-labels -q -o jsonl '{node_id=~".+"}'"""
-
+        logcli_command = """logcli query --limit=0 --forward --from='""" + last_timestamp + """' --timezone=UTC --no-labels -q -o jsonl '{node_id=~".+"}'"""
         with subprocess.Popen(logcli_command, shell=True, text=True, stdout=subprocess.PIPE) as logs:
             for log in logs.stdout.readlines():
                 try:
@@ -92,7 +80,7 @@ while True:
                         line = json.loads(json_object["line"])
 
                         # Format log based on rfc format
-                        if SYSLOG_FORMAT == "rfc3164":
+                        if FORMAT == "rfc3164":
                             if "_HOSTNAME" not in line:
                                 line["_HOSTNAME"] = ""
 
@@ -120,7 +108,7 @@ while True:
                                                                                                                 process=line["SYSLOG_IDENTIFIER"],
                                                                                                                 pid=line["_PID"],
                                                                                                                 message=line["MESSAGE"])
-                        elif SYSLOG_FORMAT == "rfc5424":
+                        elif FORMAT == "rfc5424":
                             # Format message
                             message = "{timestamp} {hostname} {process}[{pid}]: {message}".format(timestamp=json_object["timestamp"], 
                                                                                                     hostname=line["_HOSTNAME"],
@@ -137,21 +125,19 @@ while True:
 
                         # Save log timestamp only when socket send succeed
                         last_timestamp = json_object["timestamp"]
-                except Exception as exc:
-                    print("Error during logCLI execution or logs send !")
-                    print(exc)
+                except:
+                    pass
 
         # Increment timestamp by 1 microsecond to prevent sending the same log multiple times
         date_time = datetime.strptime(last_timestamp, '%Y-%m-%dT%H:%M:%S.%fZ') + timedelta(microseconds=1)
         last_timestamp = date_time.isoformat() + "Z"
 
         # Write on file the last log sent timestamp
-        timestamp_file = open("./last_timestamp", "w")
+        timestamp_file = open("./syslog_last_timestamp", "w")
         timestamp_file.write(last_timestamp)
         timestamp_file.close()
 
-        time.sleep(10)
-    except Exception as exc:
-        print("Error during loop !")
-        print(exc)
+    except:
+        pass
+    finally:
         time.sleep(10)
